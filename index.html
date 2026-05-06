@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MicroPOS">
+<meta name="theme-color" content="#1a5c3a">
+<title>MicroPOS — BIR Ready</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #f2f4f3;
+  color: #1a1a1a;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  overscroll-behavior: none;
+}
+
+:root {
+  --brand: #1a5c3a;
+  --brand-light: #e6f2ec;
+  --brand-mid: #2d7a52;
+  --accent: #f5a623;
+  --danger: #dc3545;
+  --danger-light: #fef2f2;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.app { max-width: 430px; margin: 0 auto; padding: 0 0 72px; }
+
+/* NAV */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: #fff; border-top: 1px solid #e5e5e5;
+  display: flex; z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 8px 4px 10px;
+  font-size: 10px; color: #999; background: none; border: none; cursor: pointer; gap: 3px;
+  transition: color 0.15s; font-weight: 500;
+}
+.nav-btn.active { color: var(--brand); }
+.nav-btn svg { width: 22px; height: 22px; }
+
+/* SCREENS */
+.screen { display: none; padding: 16px 14px; }
+.screen.active { display: block; }
+
+/* HEADER */
+.screen-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-top: 8px; }
+.screen-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+
+/* CARDS */
+.card {
+  background: #fff; border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 12px;
+}
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 16px; border-radius: var(--radius-sm); font-size: 14px;
+  font-weight: 600; cursor: pointer; border: none;
+  transition: opacity 0.15s, transform 0.1s; white-space: nowrap;
+}
+.btn:active { transform: scale(0.96); opacity: 0.85; }
+.btn-primary { background: var(--brand); color: #fff; width: 100%; padding: 15px; border-radius: var(--radius); font-size: 16px; }
+.btn-primary:disabled { opacity: 0.4; }
+.btn-secondary { background: var(--brand-light); color: var(--brand); }
+.btn-ghost { background: #f5f5f5; color: #444; }
+.btn-danger { background: var(--danger-light); color: var(--danger); }
+.btn-sm { padding: 7px 13px; font-size: 13px; border-radius: 8px; }
+.btn-outline { background: #fff; color: var(--brand); border: 1.5px solid var(--brand); }
+
+/* FORMS */
+input, select, textarea {
+  width: 100%; padding: 11px 13px; border-radius: var(--radius-sm);
+  border: 1.5px solid #e0e0e0; background: #fff; color: #1a1a1a;
+  font-size: 15px; outline: none; font-family: inherit;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus { border-color: var(--brand); }
+label { font-size: 13px; color: #666; display: block; margin-bottom: 5px; font-weight: 500; }
+.form-row { margin-bottom: 13px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* PRODUCT GRID */
+.product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.product-card {
+  background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 12px; cursor: pointer; transition: transform 0.1s, box-shadow 0.15s;
+  position: relative; overflow: hidden;
+}
+.product-card:active { transform: scale(0.96); box-shadow: none; }
+.product-card::after { content:''; position:absolute; inset:0; background:var(--brand); opacity:0; border-radius:var(--radius); transition:opacity 0.1s; }
+.product-card:active::after { opacity:0.06; }
+.product-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; line-height: 1.3; }
+.product-price { font-size: 17px; font-weight: 700; color: var(--brand); }
+.product-category { font-size: 11px; color: #aaa; margin-top: 3px; }
+.cat-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); margin-right: 4px; opacity: 0.5; }
+
+/* CART */
+.cart-section { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+.cart-header { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-size: 13px; font-weight: 600; color: #888; display: flex; align-items: center; justify-content: space-between; }
+.cart-item { display: flex; align-items: center; padding: 10px 16px; gap: 10px; border-bottom: 1px solid #f5f5f5; }
+.cart-item:last-child { border-bottom: none; }
+.cart-item-name { flex: 1; font-size: 14px; font-weight: 500; }
+.cart-item-unit { font-size: 11px; color: #aaa; }
+.cart-item-qty { display: flex; align-items: center; gap: 8px; }
+.qty-btn { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid #e0e0e0; background: #f8f8f8; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; font-weight: 500; transition: all 0.1s; }
+.qty-btn:active { background: var(--brand-light); border-color: var(--brand); }
+.qty-num { font-size: 15px; font-weight: 700; min-width: 22px; text-align: center; }
+.cart-item-price { font-size: 14px; font-weight: 700; min-width: 72px; text-align: right; }
+
+/* TOTALS */
+.totals-table { width: 100%; border-collapse: collapse; }
+.totals-table tr td { padding: 5px 0; font-size: 14px; }
+.totals-table tr td:last-child { text-align: right; font-weight: 600; }
+.totals-table .total-row td { font-size: 18px; padding-top: 12px; border-top: 1.5px solid #f0f0f0; }
+.tax-note { font-size: 11px; color: #aaa; margin-top: 6px; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
+.stat-label { font-size: 11px; color: #999; margin-bottom: 5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+.stat-value { font-size: 19px; font-weight: 700; color: #1a1a1a; }
+.stat-sub { font-size: 11px; color: #bbb; margin-top: 3px; }
+
+/* RECEIPT */
+.receipt {
+  font-family: 'Courier New', Courier, monospace; font-size: 12px;
+  line-height: 1.7; background: #fff; padding: 20px;
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.receipt-center { text-align: center; }
+.receipt-divider { border-top: 1px dashed #ccc; margin: 8px 0; }
+.receipt-row { display: flex; justify-content: space-between; }
+.receipt-bold { font-weight: 700; }
+
+/* SETTINGS */
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid #f0f0f0; }
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 14px; font-weight: 500; }
+.setting-sub { font-size: 12px; color: #999; margin-top: 2px; }
+
+/* TOGGLE */
+.toggle { position: relative; width: 48px; height: 28px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 28px; cursor: pointer; transition: 0.25s; }
+.toggle-slider:before { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.toggle input:checked + .toggle-slider { background: var(--brand); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+/* TAX BOX */
+.tax-box { background: var(--brand-light); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.tax-box-title { font-size: 13px; font-weight: 700; color: var(--brand); margin-bottom: 10px; }
+.tax-line { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+.tax-amount { font-weight: 700; }
+.tax-due { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(26,92,58,0.2); font-size: 12px; color: var(--brand-mid); font-weight: 500; }
+
+/* MODAL */
+.modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 22px 22px 0 0;
+  width: 100%; max-width: 430px; padding: 20px 18px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  max-height: 88vh; overflow-y: auto;
+}
+.modal-handle { width: 40px; height: 5px; background: #ddd; border-radius: 3px; margin: 0 auto 18px; }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.3px; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 36px 20px; color: #bbb; }
+.empty-icon { font-size: 44px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; font-weight: 500; }
+
+/* TOAST */
+.toast {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px);
+  background: #1a1a1a; color: #fff; padding: 11px 22px;
+  border-radius: 30px; font-size: 14px; font-weight: 500; z-index: 999;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.section-label { font-size: 12px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; margin-top: 2px; }
+
+.or-badge { background: var(--brand-light); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.or-badge-label { font-size: 12px; color: #888; font-weight: 500; }
+.or-badge-num { font-size: 15px; font-weight: 700; color: var(--brand); }
+
+.quick-amounts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.quick-btn { padding: 8px 14px; border-radius: 20px; border: 1.5px solid #e0e0e0; background: #f8f8f8; font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.1s; }
+.quick-btn:active { background: var(--brand-light); border-color: var(--brand); color: var(--brand); }
+
+.install-banner { background: var(--brand); color: #fff; border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+.install-banner-text { flex: 1; font-size: 13px; line-height: 1.5; }
+.install-banner-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+
+.pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.pill-green { background: var(--brand-light); color: var(--brand); }
+.pill-red { background: var(--danger-light); color: var(--danger); }
+.pill-gray { background: #f0f0f0; color: #666; }
+
+/* Search bar */
+.search-bar { position: relative; margin-bottom: 12px; }
+.search-bar input { padding-left: 38px; }
+.search-bar svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: #bbb; pointer-events: none; }
+
+/* Category chips */
+.cat-chips { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; scrollbar-width: none; }
+.cat-chips::-webkit-scrollbar { display: none; }
+.cat-chip { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border: 1.5px solid #e0e0e0; background: #fff; color: #666; transition: all 0.15s; flex-shrink: 0; }
+.cat-chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* OR number display */
+.sale-num { font-size: 11px; color: #999; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toast" id="toast"></div>
+
+  <!-- ===== POS SCREEN ===== -->
+  <div class="screen active" id="screen-pos">
+    <div class="screen-header">
+      <div>
+        <div class="screen-title">MicroPOS</div>
+        <div class="sale-num" id="or-display">OR #001</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="openProductModal()">+ Item</button>
+      </div>
+    </div>
+
+    <div id="install-banner-container"></div>
+
+    <!-- Category filter -->
+    <div class="cat-chips" id="cat-chips"></div>
+
+    <!-- Product grid -->
+    <div class="product-grid" id="quick-products"></div>
+
+    <!-- Cart -->
+    <div class="cart-section">
+      <div class="cart-header">
+        <span>🛒 Cart</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearCart()" style="padding:4px 10px;font-size:12px">Clear</button>
+      </div>
+      <div id="cart-items">
+        <div class="empty-state" style="padding:22px">
+          <div class="empty-text" style="color:#ccc">Tap a product to add</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="card" id="totals-card" style="display:none">
+      <table class="totals-table">
+        <tr><td style="color:#999">Subtotal</td><td id="t-subtotal">₱0.00</td></tr>
+        <tr id="t-discount-row" style="display:none"><td style="color:var(--danger)">Discount</td><td id="t-discount" style="color:var(--danger)">-₱0.00</td></tr>
+        <tr><td style="color:#999" id="t-tax-label">OPT (3%)</td><td id="t-tax">₱0.00</td></tr>
+        <tr class="total-row"><td><strong>Total</strong></td><td id="t-total" style="color:var(--brand)">₱0.00</td></tr>
+      </table>
+      <div class="tax-note" id="t-tax-note"></div>
+    </div>
+
+    <div id="checkout-area" style="display:none">
+      <div class="form-row-2" style="margin-bottom:12px">
+        <div class="form-row" style="margin-bottom:0">
+          <label>Discount (%)</label>
+          <input type="number" id="discount-pct" value="0" min="0" max="100" oninput="recalcTotals()">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label>Customer</label>
+          <input type="text" id="customer-name" placeholder="Walk-in">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="openChargeModal()">Charge →</button>
+    </div>
+  </div>
+
+  <!-- ===== PRODUCTS SCREEN ===== -->
+  <div class="screen" id="screen-products">
+    <div class="screen-header">
+      <div class="screen-title">Products</div>
+      <button class="btn btn-primary btn-sm" onclick="openProductModal()">+ Add</button>
+    </div>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="product-search" placeholder="Search products..." oninput="renderProductsList()">
+    </div>
+    <div id="products-list"></div>
+  </div>
+
+  <!-- ===== TAX SCREEN ===== -->
+  <div class="screen" id="screen-tax">
+    <div class="screen-header">
+      <div class="screen-title">Tax</div>
+      <button class="btn btn-ghost btn-sm" onclick="showTaxHelp()">Help ↗</button>
+    </div>
+
+    <div class="form-row-2" style="margin-bottom:14px">
+      <div>
+        <label>Period</label>
+        <select id="tax-period" onchange="renderTax()">
+          <option value="month">This month</option>
+          <option value="quarter">This quarter</option>
+          <option value="all">All time</option>
+        </select>
+      </div>
+      <div>
+        <label>Quarter</label>
+        <select id="tax-quarter" onchange="renderTax()">
+          <option value="1">Q1 Jan–Mar</option>
+          <option value="2">Q2 Apr–Jun</option>
+          <option value="3">Q3 Jul–Sep</option>
+          <option value="4">Q4 Oct–Dec</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="tax-stats"></div>
+    <div id="tax-detail"></div>
+    <button class="btn btn-outline" style="width:100%;margin-top:4px" onclick="exportTaxSummary()">📋 Copy for BIR filing</button>
+
+    <div class="card" style="margin-top:12px">
+      <div class="section-label">Filing calendar</div>
+      <div style="font-size:13px;line-height:2;color:#555">
+        <div><span style="color:var(--brand);font-weight:600">Q1</span> → Due <strong>April 25</strong></div>
+        <div><span style="color:var(--brand);font-weight:600">Q2</span> → Due <strong>July 25</strong></div>
+        <div><span style="color:var(--brand);font-weight:600">Q3</span> → Due <strong>October 25</strong></div>
+        <div><span style="color:var(--brand);font-weight:600">Q4</span> → Due <strong>January 25</strong></div>
+        <div style="margin-top:8px;font-size:12px;color:#aaa">File via eBIRForms or your RDO</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RECEIPTS SCREEN ===== -->
+  <div class="screen" id="screen-receipts">
+    <div class="screen-header">
+      <div class="screen-title">Receipts</div>
+      <div id="receipt-count" style="font-size:13px;color:#aaa"></div>
+    </div>
+    <div id="receipts-list"></div>
+  </div>
+
+  <!-- ===== SETTINGS SCREEN ===== -->
+  <div class="screen" id="screen-settings">
+    <div class="screen-header">
+      <div class="screen-title">Settings</div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:14px">Business info</div>
+      <div class="form-row">
+        <label>Business / Store name</label>
+        <input type="text" id="s-bizname" placeholder="Ate Maria's Store" oninput="saveSettings()">
+      </div>
+      <div class="form-row-2">
+        <div class="form-row">
+          <label>TIN</label>
+          <input type="text" id="s-tin" placeholder="000-000-000-000" oninput="saveSettings()">
+        </div>
+        <div class="form-row">
+          <label>RDO Code</label>
+          <input type="text" id="s-rdo" placeholder="082" oninput="saveSettings()">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Business address</label>
+        <input type="text" id="s-address" placeholder="123 Rizal St, Cebu City" oninput="saveSettings()">
+      </div>
+      <div class="form-row-2">
+        <div class="form-row">
+          <label>OR series start</label>
+          <input type="number" id="s-or-start" value="1" min="1" oninput="saveSettings()">
+        </div>
+        <div class="form-row">
+          <label>OR prefix</label>
+          <input type="text" id="s-or-prefix" placeholder="OR" oninput="saveSettings()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:4px">Tax</div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">VAT registered (12%)</div>
+          <div class="setting-sub">Off = 3% Percentage Tax (non-VAT)</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="s-vat" onchange="saveSettings(); recalcTotals()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Tax-inclusive pricing</div>
+          <div class="setting-sub">Prices shown already include tax</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="s-tax-inclusive" onchange="saveSettings(); recalcTotals()"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:8px">Data</div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" onclick="exportAllData()">📤 Export all data (JSON)</button>
+      <button class="btn btn-danger" style="width:100%" onclick="confirmClearData()">🗑 Clear all data</button>
+    </div>
+
+    <div style="text-align:center;font-size:12px;color:#ccc;padding:8px 0 4px">MicroPOS v1.0 · BIR-ready for PH micro businesses</div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showScreen('screen-pos')" id="nav-pos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      POS
+    </button>
+    <button class="nav-btn" onclick="showScreen('screen-products')" id="nav-products">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      Products
+    </button>
+    <button class="nav-btn" onclick="showScreen('screen-tax')" id="nav-tax">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Tax
+    </button>
+    <button class="nav-btn" onclick="showScreen('screen-receipts')" id="nav-receipts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Receipts
+    </button>
+    <button class="nav-btn" onclick="showScreen('screen-settings')" id="nav-settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </button>
+  </nav>
+</div>
+
+<!-- CHARGE MODAL -->
+<div class="modal-backdrop" id="modal-charge">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Collect payment</div>
+    <div class="card" style="margin-bottom:14px;background:var(--brand-light)">
+      <div style="font-size:13px;color:#666;margin-bottom:4px">Total due</div>
+      <div id="m-total" style="font-size:28px;font-weight:700;color:var(--brand)">₱0.00</div>
+    </div>
+    <div class="form-row">
+      <label>Amount received</label>
+      <input type="number" id="m-received" placeholder="0.00" inputmode="decimal" oninput="calcChange()">
+    </div>
+    <div class="quick-amounts" id="quick-amounts"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0">
+      <span style="font-size:14px;color:#999;font-weight:500">Change</span>
+      <span style="font-size:22px;font-weight:700" id="m-change">₱0.00</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-charge')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="completeSale()">✓ Complete sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="modal-backdrop" id="modal-product">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="product-modal-title">Add product</div>
+    <div class="form-row">
+      <label>Product name</label>
+      <input type="text" id="p-name" placeholder="e.g. Rice (1kg)">
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Price (₱)</label>
+        <input type="number" id="p-price" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div class="form-row">
+        <label>Category</label>
+        <input type="text" id="p-cat" placeholder="General">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="save-product-btn" onclick="saveProduct()">Save</button>
+    </div>
+    <button class="btn btn-danger" id="delete-product-btn" style="display:none;width:100%;margin-top:8px" onclick="deleteEditProduct()">Delete product</button>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-backdrop" id="modal-receipt">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="receipt-content"></div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('modal-receipt')">Close</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="copyReceipt()">📋 Copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- HELPERS ----
+const PAD = (n,w=3) => String(n).padStart(w,'0');
+const fmt = n => '₱' + parseFloat(n).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN = n => parseFloat(n).toFixed(2);
+const genId = () => 'id' + Date.now() + Math.random().toString(36).slice(2,6);
+
+// ---- STATE ----
+let products = JSON.parse(localStorage.getItem('pos_products') || '[]');
+let transactions = JSON.parse(localStorage.getItem('pos_txns') || '[]');
+let settings = JSON.parse(localStorage.getItem('pos_settings') || JSON.stringify({
+  bizname:'', tin:'', rdo:'', address:'',
+  orStart:1, orPrefix:'OR', vatRegistered:false, taxInclusive:false
+}));
+let cart = [];
+let editingProductId = null;
+let orCounter = parseInt(localStorage.getItem('pos_or_counter') || settings.orStart || 1);
+let selectedCategory = 'All';
+
+if (!products.length) {
+  products = [
+    {id:'p1',name:'Rice (1kg)',price:65,category:'Food'},
+    {id:'p2',name:'Bottled water',price:25,category:'Drinks'},
+    {id:'p3',name:'Instant noodles',price:15,category:'Food'},
+    {id:'p4',name:'Canned goods',price:45,category:'Food'},
+    {id:'p5',name:'Bread loaf',price:55,category:'Food'},
+    {id:'p6',name:'Soda (330ml)',price:30,category:'Drinks'},
+  ];
+  saveProducts();
+}
+
+function saveProducts() { localStorage.setItem('pos_products', JSON.stringify(products)); }
+function saveTxns() { localStorage.setItem('pos_txns', JSON.stringify(transactions)); }
+
+function saveSettings() {
+  settings.bizname = document.getElementById('s-bizname').value;
+  settings.tin = document.getElementById('s-tin').value;
+  settings.rdo = document.getElementById('s-rdo').value;
+  settings.address = document.getElementById('s-address').value;
+  settings.orStart = parseInt(document.getElementById('s-or-start').value) || 1;
+  settings.orPrefix = document.getElementById('s-or-prefix').value || 'OR';
+  settings.vatRegistered = document.getElementById('s-vat').checked;
+  settings.taxInclusive = document.getElementById('s-tax-inclusive').checked;
+  localStorage.setItem('pos_settings', JSON.stringify(settings));
+  updateTaxLabel();
+}
+
+function loadSettings() {
+  document.getElementById('s-bizname').value = settings.bizname;
+  document.getElementById('s-tin').value = settings.tin;
+  document.getElementById('s-rdo').value = settings.rdo;
+  document.getElementById('s-address').value = settings.address;
+  document.getElementById('s-or-start').value = settings.orStart;
+  document.getElementById('s-or-prefix').value = settings.orPrefix;
+  document.getElementById('s-vat').checked = settings.vatRegistered;
+  document.getElementById('s-tax-inclusive').checked = settings.taxInclusive;
+}
+
+function updateTaxLabel() {
+  const lbl = settings.vatRegistered ? 'VAT (12%)' : 'OPT (3%)';
+  const el = document.getElementById('t-tax-label');
+  if (el) el.textContent = lbl;
+}
+
+// ---- SCREENS ----
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const navEl = document.getElementById('nav-'+id.replace('screen-',''));
+  if (navEl) navEl.classList.add('active');
+  if (id==='screen-pos') { renderCategories(); renderQuickProducts(); }
+  if (id==='screen-products') renderProductsList();
+  if (id==='screen-tax') renderTax();
+  if (id==='screen-receipts') renderReceipts();
+}
+
+// ---- CATEGORIES ----
+function getCategories() {
+  const cats = ['All', ...new Set(products.map(p=>p.category||'General'))];
+  return cats;
+}
+function renderCategories() {
+  const cats = getCategories();
+  document.getElementById('cat-chips').innerHTML = cats.map(c=>`
+    <div class="cat-chip ${c===selectedCategory?'active':''}" onclick="selectCategory('${c}')">${c}</div>
+  `).join('');
+}
+function selectCategory(cat) {
+  selectedCategory = cat;
+  renderCategories();
+  renderQuickProducts();
+}
+
+// ---- PRODUCTS ----
+function renderQuickProducts() {
+  const grid = document.getElementById('quick-products');
+  const filtered = selectedCategory==='All' ? products : products.filter(p=>(p.category||'General')===selectedCategory);
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="grid-column:span 2;text-align:center;color:#ccc;font-size:13px;padding:20px">No products in this category</div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(p=>`
+    <div class="product-card" onclick="addToCart('${p.id}')">
+      <div class="product-name">${p.name}</div>
+      <div class="product-price">${fmt(p.price)}</div>
+      <div class="product-category"><span class="cat-dot"></span>${p.category||'General'}</div>
+    </div>
+  `).join('');
+}
+
+function renderProductsList() {
+  const el = document.getElementById('products-list');
+  const q = (document.getElementById('product-search')?.value||'').toLowerCase();
+  const filtered = products.filter(p=>!q||p.name.toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q));
+  if (!filtered.length) { el.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-text">No products found</div></div>'; return; }
+  el.innerHTML = filtered.map(p=>`
+    <div class="card" style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:8px" onclick="editProduct('${p.id}')">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${p.name}</div>
+        <div style="font-size:12px;color:#bbb;margin-top:2px">${p.category||'General'}</div>
+      </div>
+      <div style="font-size:17px;font-weight:700;color:var(--brand)">${fmt(p.price)}</div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </div>
+  `).join('');
+}
+
+function openProductModal(id) {
+  editingProductId = id||null;
+  document.getElementById('product-modal-title').textContent = id ? 'Edit product' : 'Add product';
+  document.getElementById('delete-product-btn').style.display = id ? 'flex' : 'none';
+  if (id) { const p=products.find(x=>x.id===id); document.getElementById('p-name').value=p.name; document.getElementById('p-price').value=p.price; document.getElementById('p-cat').value=p.category||''; }
+  else { document.getElementById('p-name').value=''; document.getElementById('p-price').value=''; document.getElementById('p-cat').value=''; }
+  openModal('modal-product');
+  setTimeout(()=>document.getElementById('p-name').focus(),300);
+}
+function editProduct(id){openProductModal(id);}
+
+function saveProduct() {
+  const name=document.getElementById('p-name').value.trim();
+  const price=parseFloat(document.getElementById('p-price').value);
+  const category=document.getElementById('p-cat').value.trim()||'General';
+  if(!name||isNaN(price)||price<0){toast('Please fill in name and price');return;}
+  if(editingProductId){const idx=products.findIndex(p=>p.id===editingProductId);products[idx]={...products[idx],name,price,category};}
+  else{products.push({id:genId(),name,price,category});}
+  saveProducts();closeModal('modal-product');
+  renderQuickProducts();renderProductsList();renderCategories();
+  toast(editingProductId?'Product updated ✓':'Product added ✓');
+}
+
+function deleteEditProduct(){
+  if(!confirm('Delete this product?'))return;
+  products=products.filter(p=>p.id!==editingProductId);
+  cart=cart.filter(c=>c.productId!==editingProductId);
+  saveProducts();renderCart();renderProductsList();renderCategories();renderQuickProducts();
+  closeModal('modal-product');toast('Product deleted');
+}
+
+// ---- CART ----
+function addToCart(productId) {
+  const p=products.find(x=>x.id===productId);
+  const existing=cart.find(c=>c.productId===productId);
+  if(existing)existing.qty++;
+  else cart.push({productId,name:p.name,price:p.price,qty:1});
+  renderCart();recalcTotals();
+}
+function changeQty(productId,delta){
+  const idx=cart.findIndex(c=>c.productId===productId);
+  if(idx===-1)return;
+  cart[idx].qty+=delta;
+  if(cart[idx].qty<=0)cart.splice(idx,1);
+  renderCart();recalcTotals();
+}
+function clearCart(){cart=[];renderCart();recalcTotals();}
+
+function renderCart(){
+  const el=document.getElementById('cart-items');
+  const tc=document.getElementById('totals-card');
+  const ca=document.getElementById('checkout-area');
+  if(!cart.length){
+    el.innerHTML='<div class="empty-state" style="padding:22px"><div class="empty-text" style="color:#ccc">Tap a product to add</div></div>';
+    tc.style.display='none';ca.style.display='none';return;
+  }
+  el.innerHTML=cart.map(c=>`
+    <div class="cart-item">
+      <div style="flex:1"><div class="cart-item-name">${c.name}</div><div class="cart-item-unit">${fmt(c.price)} each</div></div>
+      <div class="cart-item-qty">
+        <button class="qty-btn" onclick="changeQty('${c.productId}',-1)">−</button>
+        <span class="qty-num">${c.qty}</span>
+        <button class="qty-btn" onclick="changeQty('${c.productId}',1)">+</button>
+      </div>
+      <div class="cart-item-price">${fmt(c.price*c.qty)}</div>
+    </div>`).join('');
+  tc.style.display='block';ca.style.display='block';
+}
+
+function recalcTotals(){
+  const rawSubtotal=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const discPct=parseFloat(document.getElementById('discount-pct').value)||0;
+  const discAmt=rawSubtotal*discPct/100;
+  const afterDisc=rawSubtotal-discAmt;
+  const vatRate=settings.vatRegistered?0.12:0.03;
+  let taxAmt,subtotal,total;
+  if(settings.taxInclusive){total=afterDisc;taxAmt=total-(total/(1+vatRate));subtotal=total-taxAmt;}
+  else{subtotal=afterDisc;taxAmt=subtotal*vatRate;total=subtotal+taxAmt;}
+  document.getElementById('t-subtotal').textContent=fmt(rawSubtotal);
+  document.getElementById('t-discount-row').style.display=discPct>0?'':'none';
+  document.getElementById('t-discount').textContent='-'+fmt(discAmt);
+  document.getElementById('t-tax-label').textContent=settings.vatRegistered?'VAT (12%)':'OPT (3%)';
+  document.getElementById('t-tax').textContent=fmt(taxAmt);
+  document.getElementById('t-total').textContent=fmt(total);
+  document.getElementById('t-tax-note').textContent=settings.taxInclusive?'Tax included in prices':'Tax added to subtotal';
+  return{rawSubtotal,discAmt,subtotal,taxAmt,total,vatRate};
+}
+
+// ---- CHECKOUT ----
+function openChargeModal(){
+  if(!cart.length)return;
+  const{total}=recalcTotals();
+  document.getElementById('m-total').textContent=fmt(total);
+  document.getElementById('m-received').value='';
+  document.getElementById('m-change').textContent='₱0.00';
+  const amounts=[total,Math.ceil(total/10)*10,Math.ceil(total/50)*50,Math.ceil(total/100)*100].filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a-b).slice(0,4);
+  document.getElementById('quick-amounts').innerHTML=amounts.map(a=>`<button class="quick-btn" onclick="setReceived(${a})">${fmt(a)}</button>`).join('');
+  openModal('modal-charge');
+  setTimeout(()=>document.getElementById('m-received').focus(),350);
+}
+function setReceived(amt){document.getElementById('m-received').value=fmtN(amt);calcChange();}
+function calcChange(){
+  const received=parseFloat(document.getElementById('m-received').value)||0;
+  const{total}=recalcTotals();
+  const change=received-total;
+  document.getElementById('m-change').textContent=fmt(Math.max(0,change));
+  document.getElementById('m-change').style.color=change>=0?'var(--brand)':'var(--danger)';
+}
+
+function completeSale(){
+  const{rawSubtotal,discAmt,subtotal,taxAmt,total}=recalcTotals();
+  const orNum=PAD(orCounter);
+  const orFull=(settings.orPrefix||'OR')+orNum;
+  const now=new Date();
+  const txn={id:genId(),or:orFull,date:now.toISOString(),customer:document.getElementById('customer-name').value||'Walk-in',items:[...cart],rawSubtotal,discAmt,subtotal,taxAmt,total,vatRegistered:settings.vatRegistered};
+  transactions.unshift(txn);saveTxns();
+  orCounter++;
+  localStorage.setItem('pos_or_counter',orCounter);
+  document.getElementById('or-display').textContent=(settings.orPrefix||'OR')+'#'+PAD(orCounter);
+  closeModal('modal-charge');clearCart();
+  document.getElementById('customer-name').value='';
+  document.getElementById('discount-pct').value='0';
+  showReceipt(txn);
+  toast('Sale recorded! '+orFull+' ✓');
+}
+
+// ---- RECEIPTS ----
+function renderReceipts(){
+  const el=document.getElementById('receipts-list');
+  document.getElementById('receipt-count').textContent=transactions.length+' sales';
+  if(!transactions.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-text">No sales yet</div></div>';return;}
+  el.innerHTML=transactions.slice(0,50).map(t=>{
+    const d=new Date(t.date);
+    return`<div class="card" style="cursor:pointer;margin-bottom:8px" onclick='showReceipt(${JSON.stringify(t).replace(/'/g,"&#39;")})'>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:600">${t.or}</div>
+          <div style="font-size:12px;color:#aaa;margin-top:2px">${t.customer} · ${d.toLocaleDateString('en-PH')} ${d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:var(--brand)">${fmt(t.total)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showReceipt(txn){
+  if(typeof txn==='string')txn=JSON.parse(txn);
+  const d=new Date(txn.date);
+  const bizname=settings.bizname||'My Business';
+  const tin=settings.tin||'000-000-000-000';
+  const addr=settings.address||'';
+  const taxLabel=txn.vatRegistered?'VAT (12%)':'OPT (3%)';
+  document.getElementById('receipt-content').innerHTML=`<div class="receipt">
+    <div class="receipt-center receipt-bold" style="font-size:14px">${bizname}</div>
+    <div class="receipt-center" style="font-size:11px">TIN: ${tin}</div>
+    ${addr?`<div class="receipt-center" style="font-size:11px">${addr}</div>`:''}
+    <div class="receipt-divider"></div>
+    <div class="receipt-row"><span>OR #:</span><span class="receipt-bold">${txn.or}</span></div>
+    <div class="receipt-row"><span>Date:</span><span>${d.toLocaleDateString('en-PH')} ${d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})}</span></div>
+    <div class="receipt-row"><span>Customer:</span><span>${txn.customer}</span></div>
+    <div class="receipt-divider"></div>
+    ${txn.items.map(i=>`<div class="receipt-row"><span>${i.name} x${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
+    <div class="receipt-divider"></div>
+    <div class="receipt-row"><span>Subtotal</span><span>${fmt(txn.rawSubtotal)}</span></div>
+    ${txn.discAmt>0?`<div class="receipt-row"><span>Discount</span><span>-${fmt(txn.discAmt)}</span></div>`:''}
+    <div class="receipt-row"><span>${taxLabel}</span><span>${fmt(txn.taxAmt)}</span></div>
+    <div class="receipt-divider"></div>
+    <div class="receipt-row receipt-bold" style="font-size:14px"><span>TOTAL</span><span>${fmt(txn.total)}</span></div>
+    <div class="receipt-divider"></div>
+    <div class="receipt-center" style="font-size:11px">This serves as your Official Receipt</div>
+    <div class="receipt-center" style="font-size:10px;color:#999;margin-top:4px">Thank you for your purchase!</div>
+  </div>`;
+  openModal('modal-receipt');
+}
+
+function copyReceipt(){
+  navigator.clipboard.writeText(document.getElementById('receipt-content').innerText)
+    .then(()=>toast('Receipt copied! 📋'))
+    .catch(()=>toast('Select text manually to copy'));
+}
+
+// ---- TAX ----
+function getTaxTxns(){
+  const period=document.getElementById('tax-period').value;
+  const quarter=parseInt(document.getElementById('tax-quarter').value);
+  const now=new Date();
+  return transactions.filter(t=>{
+    const d=new Date(t.date);
+    if(period==='all')return true;
+    if(period==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(period==='quarter'){const qs=(quarter-1)*3;return d.getMonth()>=qs&&d.getMonth()<qs+3&&d.getFullYear()===now.getFullYear();}
+  });
+}
+
+function renderTax(){
+  const txns=getTaxTxns();
+  const totalSales=txns.reduce((s,t)=>s+t.total,0);
+  const totalTax=txns.reduce((s,t)=>s+t.taxAmt,0);
+  const totalNet=txns.reduce((s,t)=>s+t.subtotal,0);
+  document.getElementById('tax-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Gross sales</div><div class="stat-value">${fmt(totalSales)}</div></div>
+    <div class="stat-card"><div class="stat-label">${settings.vatRegistered?'VAT collected':'OPT due'}</div><div class="stat-value" style="color:var(--danger)">${fmt(totalTax)}</div></div>
+    <div class="stat-card"><div class="stat-label">Net income</div><div class="stat-value">${fmt(totalNet)}</div></div>
+    <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">${txns.length}</div></div>`;
+  const formType=settings.vatRegistered?'2550Q':'2551Q';
+  const qDates={'1':'April 25','2':'July 25','3':'October 25','4':'January 25'};
+  const q=document.getElementById('tax-quarter').value;
+  document.getElementById('tax-detail').innerHTML=`
+    <div class="tax-box">
+      <div class="tax-box-title">BIR Form ${formType} — Pre-filled values</div>
+      <div class="tax-line"><span>Gross receipts / sales</span><span class="tax-amount">${fmt(totalSales)}</span></div>
+      <div class="tax-line"><span>Tax base (net of tax)</span><span class="tax-amount">${fmt(totalNet)}</span></div>
+      <div class="tax-line"><span>${settings.vatRegistered?'Output VAT (12%)':'Percentage Tax (3%)'}</span><span class="tax-amount" style="color:var(--danger)">${fmt(totalTax)}</span></div>
+      <div class="tax-due">Due date: ${qDates[q]} · File via eBIRForms or eFPS</div>
+    </div>`;
+}
+
+function exportTaxSummary(){
+  const txns=getTaxTxns();
+  const totalSales=txns.reduce((s,t)=>s+t.total,0);
+  const totalTax=txns.reduce((s,t)=>s+t.taxAmt,0);
+  const totalNet=txns.reduce((s,t)=>s+t.subtotal,0);
+  const text=`BIR TAX SUMMARY — ${new Date().toLocaleDateString('en-PH')}
+Business: ${settings.bizname||'My Business'}
+TIN: ${settings.tin||'000-000-000-000'}
+Period: ${document.getElementById('tax-period').value}
+BIR Form: ${settings.vatRegistered?'2550Q':'2551Q'}
+
+--- ENTER THESE IN EBIRFORMS ---
+Gross Sales/Receipts: ${fmtN(totalSales)}
+Tax Base (net): ${fmtN(totalNet)}
+Tax Due (${settings.vatRegistered?'VAT 12%':'OPT 3%'}): ${fmtN(totalTax)}
+
+Transactions: ${txns.length}
+Generated: ${new Date().toLocaleString('en-PH')}`;
+  navigator.clipboard.writeText(text).then(()=>toast('Copied! Paste into eBIRForms ✓')).catch(()=>alert(text));
+}
+
+function showTaxHelp(){
+  const form=settings.vatRegistered?'2550Q (VAT)':'2551Q (percentage tax)';
+  alert(`How to file ${form}:\n\n1. Download eBIRForms from BIR website\n2. Choose Form ${settings.vatRegistered?'2550Q':'2551Q'}\n3. Tap "Copy for BIR filing" in this app\n4. Paste the numbers into the form\n5. Submit via eFPS or email to your RDO\n\nAlways keep your OR booklet registered with BIR!`);
+}
+
+// ---- DATA ----
+function exportAllData(){
+  const data=JSON.stringify({products,transactions,settings,exported:new Date().toISOString()},null,2);
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`micropos-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(url);
+  toast('Data exported ✓');
+}
+function confirmClearData(){
+  if(confirm('Clear ALL data? This cannot be undone.')){
+    localStorage.clear();location.reload();
+  }
+}
+
+// ---- MODALS ----
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-backdrop').forEach(b=>{
+  b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');});
+});
+
+// ---- TOAST ----
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ---- PWA INSTALL PROMPT ----
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner-container').innerHTML=`
+    <div class="install-banner">
+      <div style="font-size:28px">📲</div>
+      <div class="install-banner-text">
+        <div class="install-banner-title">Install MicroPOS</div>
+        Add to home screen for offline use
+      </div>
+      <button onclick="installApp()" style="background:white;color:var(--brand);border:none;padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">Install</button>
+    </div>`;
+});
+function installApp(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{
+    deferredPrompt=null;
+    document.getElementById('install-banner-container').innerHTML='';
+    toast('MicroPOS installed! ✓');
+  });
+}
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('install-banner-container').innerHTML='';
+  toast('Successfully installed! ✓');
+});
+
+// ---- SERVICE WORKER ----
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(e=>console.log('SW reg failed:',e));
+  });
+}
+
+// ---- INIT ----
+loadSettings();
+updateTaxLabel();
+renderCategories();
+renderQuickProducts();
+const curQ=Math.ceil((new Date().getMonth()+1)/3);
+document.getElementById('tax-quarter').value=curQ;
+document.getElementById('or-display').textContent=(settings.orPrefix||'OR')+'#'+PAD(orCounter);
+</script>
+</body>
+</html>
